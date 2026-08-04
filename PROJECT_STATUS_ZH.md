@@ -6,7 +6,7 @@
 
 ## 一、当前状态概览
 
-YScreenshot 是一个轻量级 Windows 截图工具，使用 C#、WinForms 和 .NET Framework 4.8 构建。应用以一个无标题栏的置顶工具条和托盘图标为主要界面，截图结果只写入剪贴板，不自动保存图片文件。
+YScreenshot 是一个超轻量级 Windows 截图工具，使用 C#、WinForms 和 .NET Framework 4.8 构建。应用以一个无标题栏的置顶工具条和托盘图标为主要界面，截图结果只写入剪贴板，不自动保存图片文件。
 
 当前功能实现状态如下：
 
