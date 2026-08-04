@@ -31,10 +31,11 @@ YScreenshot 是一个轻量、快速、面向 Windows 的截图工具，支持�
 ## 环境要求
 
 - Windows 10/11 或兼容的 Windows 桌面环境。
-- .NET Framework 4.8 运行时。
 - .NET SDK 8.0 或更高版本，用于还原、测试和编译。
 
-项目目标框架为 `.NET Framework 4.8`。构建时使用 .NET SDK 驱动 MSBuild，不要求安装完整 Visual Studio；项目会通过 NuGet 获取 .NET Framework 4.8 的引用程序集。
+Windows 10/11 通常已内置 .NET Framework 4.8 或更高兼容版本，一般无需额外安装。如果程序提示缺少运行时，再安装 [.NET Framework 4.8 Runtime](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
+
+项目目标框架为 `.NET Framework 4.8`。`.NET SDK` 只用于还原、测试和编译，不要求安装完整 Visual Studio；项目会通过 NuGet 获取 .NET Framework 4.8 的引用程序集。
 
 ## 编译和测试
 
@@ -50,6 +51,17 @@ Release 可执行文件位于：
 
 ```text
 src/YScreenshot.App/bin/Release/net48/YScreenshot.exe
+```
+
+## Release 发布包
+
+不要只上传 `YScreenshot.exe`。程序还需要配套程序集和配置文件。创建 GitHub Release 时，建议上传一个包含以下文件的 ZIP 压缩包：
+
+```text
+YScreenshot.exe
+YScreenshot.exe.config
+YScreenshot.Capture.dll
+YScreenshot.Overlay.dll
 ```
 
 ## 项目结构
