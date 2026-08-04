@@ -14,6 +14,7 @@
 TestResults/
 packages/
 *.nupkg
+*.zip
 
 # Local tooling and logs
 *.log

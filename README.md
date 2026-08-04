@@ -31,10 +31,11 @@ For reliable stitching, keep each scroll step smaller than the selected rectangl
 ## Requirements
 
 - Windows 10/11 or a compatible Windows desktop environment.
-- .NET Framework 4.8 runtime.
 - .NET SDK 8.0 or later for restore, testing, and building.
 
-The application targets `.NET Framework 4.8`. The .NET SDK is used to drive the build; a full Visual Studio installation is not required because the project restores .NET Framework 4.8 reference assemblies through NuGet.
+Windows 10/11 usually includes .NET Framework 4.8 or a newer compatible version, so most users do not need to install anything separately. If Windows reports that the runtime is missing, install the [.NET Framework 4.8 Runtime](https://dotnet.microsoft.com/download/dotnet-framework/net48).
+
+The application targets `.NET Framework 4.8`. The .NET SDK is only needed for restore, testing, and building; a full Visual Studio installation is not required because the project restores .NET Framework 4.8 reference assemblies through NuGet.
 
 ## Build and test
 
@@ -50,6 +51,17 @@ The Release executable is generated at:
 
 ```text
 src/YScreenshot.App/bin/Release/net48/YScreenshot.exe
+```
+
+## Release package
+
+Do not upload only `YScreenshot.exe`. The application also needs its companion assemblies and configuration file. Upload a ZIP containing these files as a GitHub Release asset:
+
+```text
+YScreenshot.exe
+YScreenshot.exe.config
+YScreenshot.Capture.dll
+YScreenshot.Overlay.dll
 ```
 
 ## Repository layout
