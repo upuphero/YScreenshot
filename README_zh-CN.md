@@ -37,6 +37,33 @@ Windows 10/11 通常已内置 .NET Framework 4.8 或更高兼容版本，一般�
 
 项目目标框架为 `.NET Framework 4.8`。`.NET SDK` 只用于还原、测试和编译，不要求安装完整 Visual Studio；项目会通过 NuGet 获取 .NET Framework 4.8 的引用程序集。
 
+
+## 默认预设快捷键
+- PrintScreen (PrtScn)
+
+作用： 触发 全屏截图 (Full Screen Capture)
+
+逻辑： 按下后自动隐藏浮动工具栏，跨多显示器/全虚拟屏幕抓取，将结果放入剪贴板，随后恢复工具栏。
+
+- Ctrl + Shift + A
+
+作用： 触发 区域/矩形截图 (Rectangle / Region Capture)
+
+逻辑： 按下后自动隐藏工具栏，弹出会框选叠加层（Overlay），拖拽鼠标选区，松开后裁剪并放入剪贴板；过程中按 Esc 可随时取消。
+
+- Ctrl + Shift + S
+
+作用： 触发 长截图/滚动截图 (Scrolling Capture)
+
+逻辑： 按下后框选指定区域，在手动滚动页面时自动采集并拼接画面；再次按下该快捷键（Repeat Hotkey）可作为手动结束截图的停止信号。
+
+## 辅助/控制类按键
+- Esc
+
+作用： 取消当前截图操作
+
+适用场景： 在“区域截图”或“滚动截图”出现拖拽选区/叠加层时，按 Esc 可以直接退出选区状态，并重新恢复显示工具栏。
+
 ## 编译和测试
 
 在仓库根目录执行 PowerShell 命令：
