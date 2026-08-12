@@ -41,6 +41,7 @@ namespace YScreenshot.App
         private const int WM_NCHITTEST = 0x0084;
         private const int WM_NCLBUTTONDOWN = 0x00A1;
         private const int WM_DPICHANGED = 0x02E0;
+        private const int WM_DISPLAYCHANGE = 0x007E;
         private const int HTCLIENT = 1;
         private const int HTCAPTION = 2;
 
@@ -345,6 +346,26 @@ namespace YScreenshot.App
             Invalidate(true);
         }
 
+        // Windows sends WM_DISPLAYCHANGE when the desktop resolution or monitor layout
+        // changes without any DPI change (e.g. lowering a monitor's resolution in place).
+        // A smaller desktop can leave the strip's remembered position partly or fully
+        // off-screen, so re-clamp it back onto the virtual screen -- the same safeguard
+        // OnLoad applies at startup, now applied live while the app is running too.
+        private void HandleDisplayChange()
+        {
+            var clamped = MonitorHelper.ClampToVirtualScreen(_expandedLocation, _expandedSize);
+            _expandedLocation = clamped.Location;
+
+            if (_isCollapsed)
+            {
+                ApplyCollapsedLayout();
+            }
+            else
+            {
+                Location = _expandedLocation;
+            }
+        }
+
         private void AddModeButton(ICaptureMode mode)
         {
             var button = new ToolbarIconButton
@@ -483,6 +504,12 @@ namespace YScreenshot.App
             }
 
             base.WndProc(ref m);
+
+            if (m.Msg == WM_DISPLAYCHANGE)
+            {
+                HandleDisplayChange();
+                return;
+            }
 
             if (m.Msg == WM_NCHITTEST && (int)m.Result == HTCLIENT && !_isCollapsed)
             {
