@@ -31,6 +31,9 @@ namespace YScreenshot.Overlay
             _backgroundSnapshot = backgroundSnapshot;
             _virtualBounds = virtualBounds;
 
+            // Capture geometry is already expressed in physical virtual-screen pixels.
+            // Do not let the process-wide WinForms DPI opt-in rescale this overlay.
+            AutoScaleMode = AutoScaleMode.None;
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
             Bounds = virtualBounds;
