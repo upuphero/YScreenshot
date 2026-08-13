@@ -26,6 +26,7 @@ namespace YScreenshot.App
         private const int SeparatorMargin = 4;
         private const int CollapsedTabThickness = 10;
         private const int CaptureHideDelayMs = 40;
+        internal const float ToolbarSizeScale = 0.64f;
 
         private static readonly Color ToolbarBackColor = Color.FromArgb(255, 255, 255);
         private static readonly Color ButtonHoverColor = Color.FromArgb(245, 246, 250);
@@ -78,7 +79,7 @@ namespace YScreenshot.App
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Padding = new Padding(StripPadding),
+                Padding = new Padding(ScaleDesign(StripPadding)),
                 BackColor = ToolbarBackColor
             };
             _buttonPanel.MouseDown += BeginWindowDrag;
@@ -86,21 +87,20 @@ namespace YScreenshot.App
 
             AddDragHandle();
 
-            int buttonCount = 0;
             foreach (var mode in _registry)
             {
                 AddModeButton(mode);
-                buttonCount++;
             }
             AddSeparator();
             AddHideButton();
-            buttonCount++;
 
-            int width = StripPadding * 2
-                + DragHandleWidth + DragHandleRightMargin
-                + buttonCount * (ButtonWidth + 4)
-                + SeparatorWidth + SeparatorMargin * 2;
-            Size = new Size(width, ButtonHeight + StripPadding * 2);
+            FitExpandedSizeToContent();
+
+            // App.config enables the .NET Framework 4.8 per-monitor V2 pipeline.
+            // Establish the 96-DPI design baseline only after every control and the
+            // final logical size exist, so the initial monitor is scaled in one pass.
+            AutoScaleDimensions = new SizeF(96f, 96f);
+            AutoScaleMode = AutoScaleMode.Dpi;
 
             _hotkeyManager = new HotkeyManager();
             _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
@@ -118,8 +118,8 @@ namespace YScreenshot.App
         {
             _dragHandle = new Panel
             {
-                Size = new Size(DragHandleWidth, ButtonHeight),
-                Margin = new Padding(0, 0, DragHandleRightMargin, 0),
+                Size = new Size(ScaleDesign(DragHandleWidth), ScaleDesign(ButtonHeight)),
+                Margin = new Padding(0, 0, ScaleDesign(DragHandleRightMargin), 0),
                 BackColor = ToolbarBackColor,
                 Cursor = Cursors.SizeAll
             };
@@ -131,14 +131,18 @@ namespace YScreenshot.App
 
         private static void PaintDragHandle(object sender, PaintEventArgs e)
         {
+            var handle = (Control)sender;
+            float scale = handle.DeviceDpi / 96f * ToolbarSizeScale;
+            float dotSize = 3f * scale;
+
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using (var brush = new SolidBrush(Color.FromArgb(160, 161, 170)))
             {
                 for (int row = 0; row < 3; row++)
                 {
-                    float y = 13 + row * 7;
-                    e.Graphics.FillEllipse(brush, 5, y, 3, 3);
-                    e.Graphics.FillEllipse(brush, 12, y, 3, 3);
+                    float y = (13f + row * 7f) * scale;
+                    e.Graphics.FillEllipse(brush, 5f * scale, y, dotSize, dotSize);
+                    e.Graphics.FillEllipse(brush, 12f * scale, y, dotSize, dotSize);
                 }
             }
         }
@@ -147,8 +151,9 @@ namespace YScreenshot.App
         {
             var separator = new Panel
             {
-                Size = new Size(SeparatorWidth, 26),
-                Margin = new Padding(SeparatorMargin, 8, SeparatorMargin, 8),
+                Size = new Size(ScaleDesign(SeparatorWidth), ScaleDesign(26)),
+                Margin = new Padding(ScaleDesign(SeparatorMargin), ScaleDesign(8),
+                    ScaleDesign(SeparatorMargin), ScaleDesign(8)),
                 BackColor = SeparatorColor
             };
             _buttonPanel.Controls.Add(separator);
@@ -189,6 +194,22 @@ namespace YScreenshot.App
             UpdateRoundedRegion();
         }
 
+        protected override void OnDpiChanged(DpiChangedEventArgs e)
+        {
+            base.OnDpiChanged(e);
+
+            // WinForms resizes the controls. Rebuild DPI-dependent custom drawing
+            // after that automatic layout pass so no old-DPI shape is retained.
+            if (!_isCollapsed)
+            {
+                FitExpandedSizeToContent();
+            }
+
+            UpdateRoundedRegion();
+            _dragHandle.Invalidate();
+            _buttonPanel.Invalidate(true);
+        }
+
         private void UpdateRoundedRegion()
         {
             if (Width <= 0 || Height <= 0)
@@ -196,7 +217,7 @@ namespace YScreenshot.App
                 return;
             }
 
-            const int radius = 14;
+            int radius = LogicalToDeviceUnits(ScaleDesign(14));
             var path = new GraphicsPath();
             path.AddArc(0, 0, radius * 2, radius * 2, 180, 90);
             path.AddArc(Width - radius * 2 - 1, 0, radius * 2, radius * 2, 270, 90);
@@ -214,8 +235,8 @@ namespace YScreenshot.App
         {
             var button = new ToolbarIconButton
             {
-                Size = new Size(ButtonWidth, ButtonHeight),
-                Margin = new Padding(1, 0, 1, 0),
+                Size = new Size(ScaleDesign(ButtonWidth), ScaleDesign(ButtonHeight)),
+                Margin = new Padding(ScaleDesign(1), 0, ScaleDesign(1), 0),
                 Icon = IconForMode(mode.Id),
                 Tag = mode
             };
@@ -236,8 +257,8 @@ namespace YScreenshot.App
         {
             var button = new ToolbarIconButton
             {
-                Size = new Size(ButtonWidth, ButtonHeight),
-                Margin = new Padding(1, 0, 1, 0),
+                Size = new Size(ScaleDesign(ButtonWidth), ScaleDesign(ButtonHeight)),
+                Margin = new Padding(ScaleDesign(1), 0, ScaleDesign(1), 0),
                 Icon = ToolbarIconKind.Hide
             };
             StyleToolbarButton(button);
@@ -284,6 +305,10 @@ namespace YScreenshot.App
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+
+            // Fit after the initial monitor DPI has been applied. Calculating from the
+            // actual device-sized children avoids clipping caused by per-control rounding.
+            FitExpandedSizeToContent();
 
             if (_settings.HasStoredPosition)
             {
@@ -389,6 +414,7 @@ namespace YScreenshot.App
             _expandedLocation = Location;
 
             var workArea = Screen.FromControl(this).WorkingArea;
+            int collapsedTabThickness = LogicalToDeviceUnits(ScaleDesign(CollapsedTabThickness));
 
             int distLeft = Location.X - workArea.Left;
             int distRight = workArea.Right - (Location.X + Width);
@@ -400,23 +426,23 @@ namespace YScreenshot.App
 
             if (min == distLeft)
             {
-                Size = new Size(CollapsedTabThickness, _expandedSize.Height);
+                Size = new Size(collapsedTabThickness, _expandedSize.Height);
                 Location = new Point(workArea.Left, _expandedLocation.Y);
             }
             else if (min == distRight)
             {
-                Size = new Size(CollapsedTabThickness, _expandedSize.Height);
-                Location = new Point(workArea.Right - CollapsedTabThickness, _expandedLocation.Y);
+                Size = new Size(collapsedTabThickness, _expandedSize.Height);
+                Location = new Point(workArea.Right - collapsedTabThickness, _expandedLocation.Y);
             }
             else if (min == distTop)
             {
-                Size = new Size(_expandedSize.Width, CollapsedTabThickness);
+                Size = new Size(_expandedSize.Width, collapsedTabThickness);
                 Location = new Point(_expandedLocation.X, workArea.Top);
             }
             else
             {
-                Size = new Size(_expandedSize.Width, CollapsedTabThickness);
-                Location = new Point(_expandedLocation.X, workArea.Bottom - CollapsedTabThickness);
+                Size = new Size(_expandedSize.Width, collapsedTabThickness);
+                Location = new Point(_expandedLocation.X, workArea.Bottom - collapsedTabThickness);
             }
 
             _isCollapsed = true;
@@ -587,6 +613,27 @@ namespace YScreenshot.App
             };
             timer.Start();
         }
+
+        private static int ScaleDesign(int value)
+        {
+            return Math.Max(1, (int)Math.Round(
+                value * ToolbarSizeScale,
+                MidpointRounding.AwayFromZero));
+        }
+
+        private void FitExpandedSizeToContent()
+        {
+            int width = _buttonPanel.Padding.Horizontal;
+            int contentHeight = 0;
+
+            foreach (Control control in _buttonPanel.Controls)
+            {
+                width += control.Width + control.Margin.Horizontal;
+                contentHeight = Math.Max(contentHeight, control.Height + control.Margin.Vertical);
+            }
+
+            ClientSize = new Size(width, _buttonPanel.Padding.Vertical + contentHeight);
+        }
     }
 
     internal enum ToolbarIconKind
@@ -609,7 +656,8 @@ namespace YScreenshot.App
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-            float size = Math.Min(24f, Math.Min(ClientSize.Width, ClientSize.Height) * 0.48f);
+            float scale = DeviceDpi / 96f * ToolbarForm.ToolbarSizeScale;
+            float size = Math.Min(24f * scale, Math.Min(ClientSize.Width, ClientSize.Height) * 0.48f);
             float left = (ClientSize.Width - size) / 2f;
             float top = (ClientSize.Height - size) / 2f;
             float right = left + size;
@@ -617,7 +665,7 @@ namespace YScreenshot.App
             float centerX = left + size / 2f;
             float centerY = top + size / 2f;
 
-            using (var pen = new Pen(ForeColor, 2.1f))
+            using (var pen = new Pen(ForeColor, 2.1f * scale))
             {
                 pen.StartCap = LineCap.Round;
                 pen.EndCap = LineCap.Round;
@@ -625,33 +673,39 @@ namespace YScreenshot.App
                 switch (Icon)
                 {
                     case ToolbarIconKind.FullScreen:
-                        DrawCornerBox(e.Graphics, pen, left, top, right, bottom);
+                        DrawCornerBox(e.Graphics, pen, left, top, right, bottom, 7f * scale);
                         break;
                     case ToolbarIconKind.Region:
-                        e.Graphics.DrawRectangle(pen, left + 2, top + 2, size - 4, size - 4);
+                        e.Graphics.DrawRectangle(pen, left + 2f * scale, top + 2f * scale,
+                            size - 4f * scale, size - 4f * scale);
                         break;
                     case ToolbarIconKind.Scrolling:
-                        e.Graphics.DrawLine(pen, centerX, top + 3, centerX, bottom - 3);
-                        DrawArrow(e.Graphics, pen, centerX, top + 2, centerX, top + 7);
-                        DrawArrow(e.Graphics, pen, centerX, bottom - 2, centerX, bottom - 7);
+                        e.Graphics.DrawLine(pen, centerX, top + 3f * scale, centerX, bottom - 3f * scale);
+                        DrawArrow(e.Graphics, pen, centerX, top + 2f * scale,
+                            centerX, top + 7f * scale, 4f * scale);
+                        DrawArrow(e.Graphics, pen, centerX, bottom - 2f * scale,
+                            centerX, bottom - 7f * scale, 4f * scale);
                         break;
                     case ToolbarIconKind.Hide:
-                        e.Graphics.DrawLine(pen, left + 4, top + 4, right - 4, bottom - 4);
-                        e.Graphics.DrawLine(pen, right - 4, top + 4, left + 4, bottom - 4);
+                        e.Graphics.DrawLine(pen, left + 4f * scale, top + 4f * scale,
+                            right - 4f * scale, bottom - 4f * scale);
+                        e.Graphics.DrawLine(pen, right - 4f * scale, top + 4f * scale,
+                            left + 4f * scale, bottom - 4f * scale);
                         break;
                     default:
                         using (var brush = new SolidBrush(ForeColor))
                         {
-                            e.Graphics.FillEllipse(brush, centerX - 2, centerY - 2, 4, 4);
+                            e.Graphics.FillEllipse(brush, centerX - 2f * scale, centerY - 2f * scale,
+                                4f * scale, 4f * scale);
                         }
                         break;
                 }
             }
         }
 
-        private static void DrawCornerBox(Graphics graphics, Pen pen, float left, float top, float right, float bottom)
+        private static void DrawCornerBox(Graphics graphics, Pen pen, float left, float top,
+            float right, float bottom, float length)
         {
-            float length = 7f;
             graphics.DrawLine(pen, left, top + length, left, top);
             graphics.DrawLine(pen, left, top, left + length, top);
             graphics.DrawLine(pen, right - length, top, right, top);
@@ -662,12 +716,13 @@ namespace YScreenshot.App
             graphics.DrawLine(pen, right, bottom, right, bottom - length);
         }
 
-        private static void DrawArrow(Graphics graphics, Pen pen, float tipX, float tipY, float shaftX, float shaftY)
+        private static void DrawArrow(Graphics graphics, Pen pen, float tipX, float tipY,
+            float shaftX, float shaftY, float headSize)
         {
             graphics.DrawLine(pen, tipX, tipY, shaftX, shaftY);
             float direction = tipY < shaftY ? 1f : -1f;
-            graphics.DrawLine(pen, tipX, tipY, tipX - 4f, tipY + direction * 4f);
-            graphics.DrawLine(pen, tipX, tipY, tipX + 4f, tipY + direction * 4f);
+            graphics.DrawLine(pen, tipX, tipY, tipX - headSize, tipY + direction * headSize);
+            graphics.DrawLine(pen, tipX, tipY, tipX + headSize, tipY + direction * headSize);
         }
     }
 }

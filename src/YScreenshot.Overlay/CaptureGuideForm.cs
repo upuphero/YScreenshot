@@ -26,6 +26,8 @@ namespace YScreenshot.Overlay
             var guideBounds = captureBounds;
             guideBounds.Inflate(BorderThickness, BorderThickness);
 
+            // Scrolling-capture bounds are physical screen pixels and must stay exact.
+            AutoScaleMode = AutoScaleMode.None;
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
             Bounds = guideBounds;
